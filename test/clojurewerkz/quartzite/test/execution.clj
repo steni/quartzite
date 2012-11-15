@@ -159,6 +159,38 @@
 
 
 ;;
+;; Case 4b
+;;
+
+(def value4b (atom nil))
+
+(j/defjob JobD
+  [ctx]
+  (swap! value4b (fn [_]
+                  (from-job-data (.getMergedJobDataMap ctx)))))
+
+(deftest test-job-data-access-with-keyword-keys
+  (is (sched/started?))
+  (let [jk      (j/key "clojurewerkz.quartzite.test.execution.job4b" "tests")
+        tk      (t/key "clojurewerkz.quartzite.test.execution.trigger4b" "tests")
+        job     (j/build
+                 (j/of-type clojurewerkz.quartzite.test.execution.JobD)
+                 (j/with-identity "clojurewerkz.quartzite.test.execution.job4b" "tests")
+                 (j/using-job-data { :job-key "job-value" }))
+        trigger  (t/build
+                  (t/start-now)
+                  (t/with-identity "clojurewerkz.quartzite.test.execution.trigger4b" "tests")
+                  (t/with-schedule (s/schedule
+                                    (s/with-repeat-count 10)
+                                    (s/with-interval-in-seconds 2))))]
+    (sched/schedule job trigger)
+    (sched/trigger jk)
+    (Thread/sleep 1000)
+    (is (= "job-value" (get @value4b :job-key)))))
+
+
+
+;;
 ;; Case 5
 ;;
 
